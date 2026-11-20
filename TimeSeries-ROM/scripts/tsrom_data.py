@@ -209,7 +209,27 @@ def estimate_time_constants(runs, y_cols, u_cols, tc):
     coef, *_ = np.linalg.lstsq(X, dY / sy.s, rcond=None)
     A = coef[:len(y_cols)].T
     lam = np.linalg.eigvals(A)
-    re = np.abs(lam.real); re = re[re > 1e-12]
+    re = list(np.abs(lam.real[lam.real < -1e-12]))
+    # per-output fits dy_j/dt = a*y_j + B u + c: robust when the coupled fit is distorted by nonlinearity
+    for j in range(len(y_cols)):
+        Xj = np.hstack([sy.f(Y)[:, [j]], su.f(U), np.ones((len(Y), 1))])
+        cj, *_ = np.linalg.lstsq(Xj, dY[:, j] / sy.s[j], rcond=None)
+        if cj[0] < -1e-12:
+            re.append(-cj[0])
+    # mode-wise fits: a discrete input (on/off, gear, mode) often switches the dynamics; fit each level separately
+    for k in range(U.shape[1]):
+        levels = np.unique(U[:, k])
+        if 1 < len(levels) <= 5:
+            for lv in levels:
+                msk = U[:, k] == lv
+                if msk.sum() < 50 * (U.shape[1] + 3):
+                    continue
+                for j in range(len(y_cols)):
+                    Xj = np.hstack([sy.f(Y[msk])[:, [j]], su.f(U[msk]), np.ones((msk.sum(), 1))])
+                    cj, *_ = np.linalg.lstsq(Xj, dY[msk, j] / sy.s[j], rcond=None)
+                    if cj[0] < -1e-12:
+                        re.append(-cj[0])
+    re = np.array(re)
     if len(re) == 0:
         return None, None, lam
     taus = 1.0 / re
@@ -222,9 +242,19 @@ def resample(d, tc, y_cols, u_cols, dt, input_hold=True):
     t = d[tc].values
     Y = np.column_stack([np.interp(tg, t, d[c].values) for c in y_cols])
     if u_cols:
-        if input_hold:   # zero-order hold: value at or before tg (post-event value at switching instants)
-            idx = np.clip(np.searchsorted(t, tg + 1e-9 * dt, side="right") - 1, 0, len(t) - 1)
-            U = np.column_stack([d[c].values[idx] for c in u_cols])
+        if input_hold:
+            # zero-order-hold value for each step [tg, tg+dt): the AVERAGE of the input over that interval.
+            # Exact for steps on the grid; preserves energy/charge when the input changes faster than dt.
+            fine = np.arange(t0, t1 + dt * 1e-6, min(dt, float(np.median(np.diff(t)))))
+            idx = np.clip(np.searchsorted(t, fine + 1e-9 * dt, side="right") - 1, 0, len(t) - 1)
+            k = int(round(dt / (fine[1] - fine[0]))) if len(fine) > 1 else 1
+            U = []
+            for c in u_cols:
+                v = d[c].values[idx]
+                m = len(tg) * k
+                v = np.concatenate([v, np.repeat(v[-1:], max(0, m - len(v)))])[:m]
+                U.append(v.reshape(len(tg), k).mean(1))
+            U = np.column_stack(U)
         else:
             U = np.column_stack([np.interp(tg, t, d[c].values) for c in u_cols])
     else:
@@ -248,7 +278,7 @@ def choose_dt(runs, tc, ins, data_dt, tmin):
     steps = [int(round((d[tc].values[-1] - d[tc].values[0]) / data_dt)) for _, d in runs]
     ok = []
     for k in range(kmax, 0, -1):
-        if len(ev) == 0 or np.mean(ev % k == 0) >= 0.99 or len(ev) > 0.2 * sum(len(d) for _, d in runs):
+        if len(ev) == 0 or np.mean(ev % k == 0) >= 0.99 or len(ev) > 0.2 * sum(len(d) for _, d in runs):  # fast/noisy inputs are interval-averaged
             ok.append(k)
     if not ok:
         return data_dt
