@@ -1,0 +1,14 @@
+{
+  "model": "Modelica.Thermal.HeatTransfer.Examples.Motor",
+  "out_dir": "work/omc_data",
+  "stop_time": 7200, "intervals": 1440, "n_runs": 30, "seed": 0,
+  "tables": [{"component": "lossTable", "time_step": 5,
+              "columns": [{"lo": 0, "hi": 1200, "hold_min": 60, "hold_max": 900},
+                          {"lo": 0, "hi": 900, "hold_min": 120, "hold_max": 1800}]}],
+  "parameters": [{"name": "TAmb", "lo": 273.15, "hi": 318.15}],
+  "start_values": [{"name": "winding.T", "relative_to": "TAmb", "lo_offset": 0, "hi_offset": 80, "cold_fraction": 0.33},
+                   {"name": "core.T", "relative_to": "TAmb", "lo_offset": 0, "hi_offset": 60, "cold_fraction": 0.33}],
+  "extra_declarations": ["Real TAmbSig = TAmb;"],
+  "variable_filter": "time|winding.T|core.T|lossTable.y.1.|lossTable.y.2.|TAmbSig|Twinding.T|Tcore.T",
+  "include_original": true
+}

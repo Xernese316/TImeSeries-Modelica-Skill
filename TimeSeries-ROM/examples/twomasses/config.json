@@ -1,0 +1,16 @@
+{
+  "work_dir": ".",
+  "dataset": {"files": ["work/omc_data/run_*_res.csv", "work/omc_data/original_res.csv"], "time_column": "time"},
+  "test_runs": ["original_res"],
+  "inputs": [],
+  "outputs": [{"column": "mass1.T", "name": "T1", "unit": "K"},
+              {"column": "mass2.T", "name": "T2", "unit": "K"}],
+  "package_name": "TwoMassesROM",
+  "reference": {
+    "model": "Modelica.Thermal.HeatTransfer.Examples.TwoMasses",
+    "outputs": ["mass1.T", "mass2.T"],
+    "start_values": [373.15, 273.15],
+    "experiment": "StopTime=5, Interval=0.01",
+    "simulate_args": "stopTime=5, numberOfIntervals=500, "
+  }
+}

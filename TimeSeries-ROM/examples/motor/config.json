@@ -1,0 +1,21 @@
+{
+  "work_dir": ".",
+  "dataset": {"files": ["work/omc_data/run_*_res.csv", "work/omc_data/original_res.csv"], "time_column": "time"},
+  "test_runs": ["original_res"],
+  "inputs": [{"column": "lossTable.y[1]", "name": "P_winding", "unit": "W"},
+             {"column": "lossTable.y[2]", "name": "P_core", "unit": "W"},
+             {"column": "TAmbSig", "name": "T_ambient", "unit": "K"}],
+  "outputs": [{"column": "winding.T", "name": "T_winding", "unit": "K", "port": "heat"},
+              {"column": "core.T", "name": "T_core", "unit": "K", "port": "heat"}],
+  "package_name": "MotorThermalROM",
+  "input_interpolation": "hold",
+  "reference": {
+    "model": "Modelica.Thermal.HeatTransfer.Examples.Motor",
+    "outputs": ["winding.T", "core.T"],
+    "start_values": [293.15, 293.15],
+    "drivers": "  Modelica.Blocks.Sources.CombiTimeTable lossTable(extrapolation=Modelica.Blocks.Types.Extrapolation.Periodic,\n    smoothness=Modelica.Blocks.Types.Smoothness.ConstantSegments, table=[0,100,500; 360,1000,500; 600,100,500]);\n  Modelica.Blocks.Sources.Constant TAmb(k=293.15);\n",
+    "connects": ["lossTable.y[1], rom.P_winding", "lossTable.y[2], rom.P_core", "TAmb.y, rom.T_ambient"],
+    "experiment": "StopTime=7200, Interval=5",
+    "simulate_args": "stopTime=7200, numberOfIntervals=1440, "
+  }
+}

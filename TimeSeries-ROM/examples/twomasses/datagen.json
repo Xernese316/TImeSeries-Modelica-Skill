@@ -1,0 +1,9 @@
+{
+  "model": "Modelica.Thermal.HeatTransfer.Examples.TwoMasses",
+  "out_dir": "work/omc_data",
+  "stop_time": 5, "intervals": 500, "n_runs": 30, "seed": 0,
+  "start_values": [{"name": "mass1.T", "lo": 253.15, "hi": 413.15},
+                   {"name": "mass2.T", "lo": 253.15, "hi": 413.15}],
+  "variable_filter": "time|mass1.T|mass2.T|Tsensor1.T|Tsensor2.T",
+  "include_original": true
+}
